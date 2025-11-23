@@ -38,6 +38,12 @@
     #api-key-modal.show {
       opacity: 1;
     }
+    
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); }
+    ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
   </style>
 </head>
 <body class="text-white text-sm md:text-base">
@@ -184,6 +190,34 @@
       </div>
     </div>
 
+    <!-- Trade History Section -->
+    <div class="mt-6">
+      <div class="flex flex-col md:flex-row md:items-center justify-between mb-3 gap-3">
+        <h3 class="text-lg font-bold flex items-center gap-2 opacity-80">
+          <i class="fas fa-history text-violet-400"></i> Trade History
+        </h3>
+        <div id="history-stats" class="flex flex-wrap gap-2 text-xs">
+           <!-- Stats injected via JS -->
+           <div class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 animate-pulse w-32 h-8"></div>
+        </div>
+      </div>
+      
+      <!-- Desktop Header (Hidden on Mobile) -->
+      <div class="hidden md:grid grid-cols-8 gap-4 px-4 py-2 text-[10px] font-bold opacity-50 uppercase tracking-wider border-b border-white/10 mb-1">
+        <div class="col-span-2">Time</div>
+        <div class="col-span-1">Side</div>
+        <div class="col-span-1 text-right">Price</div>
+        <div class="col-span-1 text-right">Size</div>
+        <div class="col-span-1 text-right">Value</div>
+        <div class="col-span-1 text-right">Fee</div>
+        <div class="col-span-1 text-right">PnL</div>
+      </div>
+
+      <div id="trade-history-container" class="flex flex-col gap-3 md:gap-0 max-h-[400px] overflow-y-auto pr-1">
+        <div class="glass rounded-xl p-4 text-center opacity-50">Loading history...</div>
+      </div>
+    </div>
+
     <!-- Footer -->
     <div class="text-center mt-6 opacity-60 text-xs md:text-sm">
       <p>Microhyper@2025 • <span id="clock"></span></p>
@@ -284,6 +318,7 @@
         
         fetchStatus();
         fetchMiniChart();
+        fetchHistory();
       } else {
         input.classList.add('border-red-500');
       }
@@ -370,6 +405,7 @@
           showToast(`Trade status: ${res.data.status}. ${res.data.detail?.detail || ''}`, true);
         }
         fetchStatus();
+        fetchHistory();
       } catch (err) {
         const errorMessage = err.response?.data?.detail || err.message;
         const isCors = err.code === "ERR_NETWORK" && !err.response;
@@ -410,6 +446,7 @@
           showToast(`Trade status: ${res.data.status}. ${res.data.detail?.detail || ''}`, true);
         }
         fetchStatus();
+        fetchHistory();
       } catch (err) {
         const errorMessage = err.response?.data?.detail || err.message;
         const isCors = err.code === "ERR_NETWORK" && !err.response;
@@ -456,6 +493,8 @@
         const res = await axios.post(`${getApiBase()}/close_position`, { pair });
         showToast(res.data.message || "Position close submitted");
         fetchStatus();
+        // Small delay to allow fill to happen before history refresh
+        setTimeout(fetchHistory, 1000);
       } catch (err) {
         const errorMessage = err.response?.data?.detail || err.message;
         showToast(`Close position failed: ${errorMessage}`, true);
@@ -492,6 +531,120 @@
         setLoading(false);
         btn.innerHTML = originalContent;
       }
+    }
+
+    async function fetchHistory() {
+      try {
+        const pair = document.getElementById("pair").value;
+        const res = await axios.get(`${getApiBase()}/history?pair=${pair}`);
+        renderHistory(res.data);
+      } catch (err) {
+        console.error("Failed to fetch history:", err);
+      }
+    }
+
+    function renderHistory(trades) {
+      const container = document.getElementById('trade-history-container');
+      const statsContainer = document.getElementById('history-stats');
+
+      if (!trades || trades.length === 0) {
+        container.innerHTML = '<div class="glass rounded-xl p-6 text-center opacity-50">No trade history found for this pair.</div>';
+        if(statsContainer) statsContainer.innerHTML = '<span class="opacity-50 text-xs">No recent activity</span>';
+        return;
+      }
+
+      // --- Calculate 24h Stats ---
+      const now = new Date();
+      const oneDayAgo = new Date(now - 24 * 60 * 60 * 1000);
+      const recentTrades = trades.filter(t => new Date(t.time) > oneDayAgo);
+      
+      let pnl24h = 0;
+      let fees24h = 0;
+      let openCount = 0;
+      let closeCount = 0;
+      
+      recentTrades.forEach(t => {
+        pnl24h += t.pnl || 0;
+        fees24h += t.fee || 0;
+        const side = (t.side || '').toLowerCase();
+        if (side.includes('open')) openCount++;
+        if (side.includes('close')) closeCount++;
+      });
+
+      const netPnl24h = pnl24h - fees24h;
+
+      if (statsContainer) {
+        statsContainer.innerHTML = `
+            <div class="px-2 py-1 rounded-lg bg-white/5 border border-white/10 flex items-center gap-2" title="Realized PnL (24h)">
+                <span class="opacity-50 uppercase tracking-wider text-[10px]">24h PnL</span>
+                <span class="font-mono font-bold ${pnl24h >= 0 ? 'text-green-400' : 'text-red-400'}">${pnl24h >= 0 ? '+' : ''}$${pnl24h.toFixed(2)}</span>
+            </div>
+            <div class="px-2 py-1 rounded-lg bg-white/5 border border-white/10 flex items-center gap-2" title="Total Fees (24h)">
+                <span class="opacity-50 uppercase tracking-wider text-[10px]">Fees</span>
+                <span class="font-mono font-bold text-orange-300">$${fees24h.toFixed(2)}</span>
+            </div>
+            <div class="px-2 py-1 rounded-lg bg-white/5 border border-white/10 flex items-center gap-2" title="Net PnL after Fees (24h)">
+                <span class="opacity-50 uppercase tracking-wider text-[10px]">Net</span>
+                <span class="font-mono font-bold ${netPnl24h >= 0 ? 'text-green-400' : 'text-red-400'}">${netPnl24h >= 0 ? '+' : ''}$${netPnl24h.toFixed(2)}</span>
+            </div>
+            <div class="px-2 py-1 rounded-lg bg-white/5 border border-white/10 flex items-center gap-2" title="Trades Opened (24h)">
+                <span class="opacity-50 uppercase tracking-wider text-[10px]">Open</span>
+                <span class="font-mono font-bold">${openCount}</span>
+            </div>
+            <div class="px-2 py-1 rounded-lg bg-white/5 border border-white/10 flex items-center gap-2" title="Trades Closed (24h)">
+                <span class="opacity-50 uppercase tracking-wider text-[10px]">Close</span>
+                <span class="font-mono font-bold">${closeCount}</span>
+            </div>
+        `;
+      }
+      
+      container.innerHTML = trades.map(t => {
+        const isProfit = t.pnl > 0;
+        const isLoss = t.pnl < 0;
+        const pnlClass = isProfit ? 'text-green-400' : (isLoss ? 'text-red-400' : 'opacity-50');
+        const pnlText = t.pnl !== 0 ? (t.pnl > 0 ? '+' : '') + `$${t.pnl.toFixed(2)}` : '-';
+        
+        let sideColor = 'text-white';
+        const sideLower = t.side.toLowerCase();
+        if (sideLower.includes('long') || sideLower.includes('buy')) sideColor = 'text-green-400';
+        if (sideLower.includes('short') || sideLower.includes('sell')) sideColor = 'text-red-400';
+
+        const date = new Date(t.time);
+        const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+        return `
+        <div class="glass rounded-xl p-3 md:p-0 md:px-4 md:py-3 md:rounded-none md:bg-transparent md:border-0 md:border-b md:border-white/5 hover:bg-white/5 transition-colors">
+            <!-- Mobile View (Card) -->
+            <div class="md:hidden">
+                <div class="flex justify-between items-center mb-2 pb-2 border-b border-white/5">
+                    <span class="font-bold text-sm ${sideColor}">${t.side}</span>
+                    <div class="flex flex-col items-end">
+                        <span class="text-[10px] opacity-40 uppercase tracking-wider">PnL</span>
+                        <span class="font-mono font-bold text-xs ${pnlClass}">${pnlText}</span>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-y-1 text-xs opacity-80">
+                    <div class="col-span-2 flex justify-between"><span class="opacity-40">Time</span> <span>${dateStr}</span></div>
+                    <div class="flex justify-between mr-2"><span class="opacity-40">Price</span> <span>$${t.price.toFixed(2)}</span></div>
+                    <div class="flex justify-between"><span class="opacity-40">Size</span> <span>${t.size.toFixed(2)}</span></div>
+                    <div class="flex justify-between mr-2"><span class="opacity-40">Value</span> <span>$${t.value.toFixed(2)}</span></div>
+                    <div class="flex justify-between"><span class="opacity-40">Fee</span> <span>$${t.fee.toFixed(2)}</span></div>
+                </div>
+            </div>
+
+            <!-- Desktop View (Row) -->
+            <div class="hidden md:grid grid-cols-8 gap-4 items-center text-xs">
+                <div class="col-span-2 opacity-60">${dateStr}</div>
+                <div class="col-span-1 font-bold ${sideColor}">${t.side}</div>
+                <div class="col-span-1 text-right font-mono opacity-90">$${t.price.toFixed(2)}</div>
+                <div class="col-span-1 text-right font-mono opacity-90">${t.size.toFixed(2)}</div>
+                <div class="col-span-1 text-right font-mono opacity-60">$${t.value.toFixed(2)}</div>
+                <div class="col-span-1 text-right font-mono opacity-60">$${t.fee.toFixed(2)}</div>
+                <div class="col-span-1 text-right font-mono font-bold ${pnlClass}">${pnlText}</div>
+            </div>
+        </div>
+        `;
+      }).join('');
     }
 
     function renderStatus(data) {
@@ -765,6 +918,7 @@
     document.getElementById("pair").addEventListener("change", () => {
       fetchStatus();
       fetchMiniChart();
+      fetchHistory();
     });
 
     // Live clock & status refresh
@@ -773,6 +927,7 @@
       if (getStoredKey()) {
         fetchStatus();
         fetchMiniChart();
+        // fetchHistory(); // Optional: Uncomment to auto-refresh history periodically
       }
     }, 5000); // Refresh every 5 seconds
     
@@ -782,6 +937,7 @@
     } else {
         fetchStatus();
         fetchMiniChart();
+        fetchHistory();
     }
   </script>
 </body>
