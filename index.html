@@ -560,15 +560,18 @@
       
       let pnl24h = 0;
       let fees24h = 0;
-      let openCount = 0;
-      let closeCount = 0;
+      let openLongCount = 0;
+      let openShortCount = 0;
       
       recentTrades.forEach(t => {
         pnl24h += t.pnl || 0;
         fees24h += t.fee || 0;
         const side = (t.side || '').toLowerCase();
-        if (side.includes('open')) openCount++;
-        if (side.includes('close')) closeCount++;
+        
+        if (side.includes('open')) {
+            if (side.includes('long') || side.includes('buy')) openLongCount++;
+            if (side.includes('short') || side.includes('sell')) openShortCount++;
+        }
       });
 
       const netPnl24h = pnl24h - fees24h;
@@ -587,13 +590,13 @@
                 <span class="opacity-50 uppercase tracking-wider text-[10px]">Net</span>
                 <span class="font-mono font-bold ${netPnl24h >= 0 ? 'text-green-400' : 'text-red-400'}">${netPnl24h >= 0 ? '+' : ''}$${netPnl24h.toFixed(2)}</span>
             </div>
-            <div class="px-2 py-1 rounded-lg bg-white/5 border border-white/10 flex items-center gap-2" title="Trades Opened (24h)">
-                <span class="opacity-50 uppercase tracking-wider text-[10px]">Open</span>
-                <span class="font-mono font-bold">${openCount}</span>
+            <div class="px-2 py-1 rounded-lg bg-white/5 border border-white/10 flex items-center gap-2" title="Longs Opened (24h)">
+                <span class="opacity-50 uppercase tracking-wider text-[10px]">Longs</span>
+                <span class="font-mono font-bold text-green-400">${openLongCount}</span>
             </div>
-            <div class="px-2 py-1 rounded-lg bg-white/5 border border-white/10 flex items-center gap-2" title="Trades Closed (24h)">
-                <span class="opacity-50 uppercase tracking-wider text-[10px]">Close</span>
-                <span class="font-mono font-bold">${closeCount}</span>
+            <div class="px-2 py-1 rounded-lg bg-white/5 border border-white/10 flex items-center gap-2" title="Shorts Opened (24h)">
+                <span class="opacity-50 uppercase tracking-wider text-[10px]">Shorts</span>
+                <span class="font-mono font-bold text-red-400">${openShortCount}</span>
             </div>
         `;
       }
