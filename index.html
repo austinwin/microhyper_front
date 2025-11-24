@@ -465,7 +465,7 @@
             const rationale = signal.rationale_short || 'No rationale provided.';
             const strategy = signal.strategy !== undefined ? signal.strategy: 'None';
             const timeframe = signal.timeframe_bias || 'N/A';
-
+            const described_personals = signal.described_personals || 'No persona description provided.';
             return `
             <div class="glass rounded-xl p-4 border ${bgClass} hover:bg-white/5 transition-colors">
                 <div class="flex justify-between items-start mb-2">
@@ -478,6 +478,7 @@
                 
                 <div class="mb-3">
                     <p class="text-xs opacity-90 leading-relaxed italic">"${rationale}"</p>
+                    <p class="text-xs opacity-90 leading-relaxed italic">"${described_personals|| 'No persona description provided.'}"</p>
                 </div>
                 
                 <div class="flex flex-wrap gap-2 text-[10px] uppercase tracking-wide opacity-70">
@@ -696,11 +697,8 @@
                 </div>
                 
                 <div class="bg-white/5 rounded-lg p-4 border border-white/10">
-                    <div class="text-xs opacity-50 uppercase tracking-wide mb-1">Rationale</div>
+                    <div class="text-xs opacity-50 uppercase tracking-wide mb-1">Rationale and Personals</div>
                     <p class="text-sm italic opacity-90 leading-relaxed">"${aiData.rationale || aiData.rationale_short}"</p>
-                </div>
-                <div class="bg-white/5 rounded-lg p-4 border border-white/10">
-                    <div class="text-xs opacity-50 uppercase tracking-wide mb-1">Persona</div>
                     <p class="text-sm italic opacity-90 leading-relaxed">"${aiData.described_personals}"</p>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
