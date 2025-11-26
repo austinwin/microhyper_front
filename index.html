@@ -162,10 +162,10 @@
       <!-- Table Header -->
       <div class="grid grid-cols-12 gap-2 px-2 py-2 text-[10px] font-bold uppercase tracking-wider opacity-60 border-b border-white/10">
         <div class="col-span-3 cursor-pointer hover:text-white" onclick="sortPairs('name')">Pair <i class="fas fa-sort ml-1"></i></div>
-        <div class="col-span-2 text-right cursor-pointer hover:text-white" onclick="sortPairs('price')">Price <i class="fas fa-sort ml-1"></i></div>
-        <div class="col-span-2 text-right cursor-pointer hover:text-white" onclick="sortPairs('change')">24h % <i class="fas fa-sort ml-1"></i></div>
-        <div class="col-span-3 text-right cursor-pointer hover:text-white" onclick="sortPairs('volume')">Vol (24h) <i class="fas fa-sort ml-1"></i></div>
-        <div class="col-span-2 text-center">Action</div>
+        <div class="col-span-3 md:col-span-2 text-right cursor-pointer hover:text-white" onclick="sortPairs('price')">Price <i class="fas fa-sort ml-1"></i></div>
+        <div class="col-span-3 md:col-span-2 text-right cursor-pointer hover:text-white" onclick="sortPairs('change')">24h % <i class="fas fa-sort ml-1"></i></div>
+        <div class="hidden md:block md:col-span-3 text-right cursor-pointer hover:text-white" onclick="sortPairs('volume')">Vol (24h) <i class="fas fa-sort ml-1"></i></div>
+        <div class="col-span-3 md:col-span-2 text-center">Action</div>
       </div>
 
       <!-- Table Body -->
@@ -662,10 +662,10 @@
                     <span>${p.name}</span>
                     <span class="text-[9px] opacity-40 font-normal">Max ${p.max_leverage}x</span>
                 </div>
-                <div class="col-span-2 text-right font-mono text-xs">$${formatPrice(p.price)}</div>
-                <div class="col-span-2 text-right font-mono text-xs ${changeColor}">${p.change_24h > 0 ? '+' : ''}${p.change_24h.toFixed(2)}%</div>
-                <div class="col-span-3 text-right font-mono text-xs opacity-70">${volStr}</div>
-                <div class="col-span-2 text-center">
+                <div class="col-span-3 md:col-span-2 text-right font-mono text-xs truncate">$${formatPrice(p.price)}</div>
+                <div class="col-span-3 md:col-span-2 text-right font-mono text-xs ${changeColor}">${p.change_24h > 0 ? '+' : ''}${p.change_24h.toFixed(2)}%</div>
+                <div class="hidden md:block md:col-span-3 text-right font-mono text-xs opacity-70">${volStr}</div>
+                <div class="col-span-3 md:col-span-2 text-center">
                     <button onclick="togglePair('${p.name}')" class="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide transition-all ${isActive ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30' : 'bg-green-500/20 text-green-300 hover:bg-green-500/30'}">
                         ${isActive ? 'Remove' : 'Add'}
                     </button>
@@ -801,9 +801,63 @@
                 ? `<span class="ml-2 text-[8px] font-bold text-amber-400 bg-amber-400/10 px-1.5 py-px rounded border border-amber-400/20 tracking-wider">COUNTER</span>` 
                 : ``;
 
+            let contentHtml = '';
+            
+            if (bot.position) {
+                const pos = bot.position;
+                const isLong = pos.size > 0;
+                const direction = isLong ? "LONG" : "SHORT";
+                const dirColor = isLong ? "text-green-400" : "text-red-400";
+                const pnlColor = pos.unrealized_pnl >= 0 ? "text-green-400" : "text-red-400";
+                const roi = pos.roi.toFixed(2) + "%";
+                const pnl = (pos.unrealized_pnl >= 0 ? "+" : "") + "$" + formatPrice(pos.unrealized_pnl);
+                
+                contentHtml = `
+                    <div class="mt-3 pt-3 border-t border-white/5 grid grid-cols-2 gap-y-2 gap-x-4 text-xs">
+                        <div class="flex justify-between items-center">
+                            <span class="opacity-50 text-[10px] uppercase">Dir/Lev</span>
+                            <span class="font-bold ${dirColor}">${direction} ${bot.leverage}x</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="opacity-50 text-[10px] uppercase">Size</span>
+                            <span class="font-mono">${Math.abs(pos.size).toFixed(2)}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="opacity-50 text-[10px] uppercase">Entry</span>
+                            <span class="font-mono">$${formatPrice(pos.entry_price)}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="opacity-50 text-[10px] uppercase">Liq</span>
+                            <span class="font-mono text-orange-400">$${formatPrice(pos.liquidation_price)}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="opacity-50 text-[10px] uppercase">Margin</span>
+                            <span class="font-mono">$${formatPrice(pos.margin_used)}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="opacity-50 text-[10px] uppercase">PnL</span>
+                            <span class="font-mono font-bold ${pnlColor}">${pnl} (${roi})</span>
+                        </div>
+                    </div>
+                `;
+            } else {
+                contentHtml = `
+                    <div class="grid grid-cols-2 gap-2 text-xs mt-2">
+                        <div class="bg-white/5 rounded p-2 border border-white/5">
+                            <div class="opacity-50 text-[10px] uppercase tracking-wide">Leverage</div>
+                            <div class="font-mono font-bold">${bot.leverage}x</div>
+                        </div>
+                        <div class="bg-white/5 rounded p-2 border border-white/5">
+                            <div class="opacity-50 text-[10px] uppercase tracking-wide">Size</div>
+                            <div class="font-mono font-bold">$${bot.trade_size_usd}</div>
+                        </div>
+                    </div>
+                `;
+            }
+
             return `
-            <div class="glass rounded-xl p-4 border ${statusBg} relative overflow-hidden group transition-all hover:scale-[1.02] cursor-pointer" onclick="selectPair('${bot.pair}')">
-                <div class="flex justify-between items-start mb-3">
+            <div class="glass rounded-xl p-4 border ${statusBg} relative overflow-hidden group transition-all cursor-pointer" onclick="selectPair('${bot.pair}')">
+                <div class="flex justify-between items-start mb-1">
                     <div class="flex items-center gap-3 overflow-hidden">
                         <div class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center flex-shrink-0">
                             <i class="fas ${icon} ${statusColor}"></i>
@@ -821,16 +875,7 @@
                     </div>
                 </div>
                 
-                <div class="grid grid-cols-2 gap-2 text-xs">
-                    <div class="bg-white/5 rounded p-2 border border-white/5">
-                        <div class="opacity-50 text-[10px] uppercase">Leverage</div>
-                        <div class="font-mono font-bold">${bot.leverage}x</div>
-                    </div>
-                    <div class="bg-white/5 rounded p-2 border border-white/5">
-                        <div class="opacity-50 text-[10px] uppercase">Size</div>
-                        <div class="font-mono font-bold">$${bot.trade_size_usd}</div>
-                    </div>
-                </div>
+                ${contentHtml}
             </div>
             `;
         }).join('');
