@@ -528,6 +528,16 @@
     let lastAiSignal = null; // Store last AI signal for modal execution
     let counterTradeActive = false; // New state
     
+    // Debounce utility
+    function debounce(func, wait) {
+      let timeout;
+      return function(...args) {
+        const context = this;
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(context, args), wait);
+      };
+    }
+
     // Store persona preferences per pair locally
     let personaPreferences = {}; 
 
@@ -1184,6 +1194,13 @@
       try {
         const res = await axios.post(`${getApiBase()}/cancel_orders`, { pair });
         showToast(res.data.message || "Open orders cancelled");
+        
+        // Optimistic Update: Clear orders UI immediately
+        document.getElementById('status-open-orders').innerHTML = `
+          <div class="text-xs opacity-70 uppercase tracking-wide">Orders</div>
+          <div class="text-xl md:text-2xl font-bold opacity-50">-</div>
+        `;
+        
         fetchStatus();
       } catch (err) {
         const errorMessage = err.response?.data?.detail || err.message;
@@ -1204,9 +1221,22 @@
       try {
         const res = await axios.post(`${getApiBase()}/close_position`, { pair });
         showToast(res.data.message || "Position close submitted");
-        fetchStatus();
-        // Small delay to allow fill to happen before history refresh
-        setTimeout(fetchHistory, 1000);
+        
+        // Optimistic Update: Clear position UI immediately
+        document.getElementById('status-open-position').innerHTML = `
+          <div class="text-xs opacity-70 uppercase tracking-wide">Position</div>
+          <div class="text-xl md:text-2xl font-bold opacity-50">Closing...</div>
+        `;
+        
+        // Parallel fetch
+        Promise.all([
+            fetchStatus(),
+            new Promise(resolve => setTimeout(async () => {
+                await fetchHistory();
+                resolve();
+            }, 1000))
+        ]);
+        
       } catch (err) {
         const errorMessage = err.response?.data?.detail || err.message;
         showToast(`Close position failed: ${errorMessage}`, true);
@@ -1634,41 +1664,80 @@
       }
     }
     
+    // Consolidated refresh function
+    async function refreshDashboard() {
+        const pair = document.getElementById("pair").value;
+        if (!pair) return;
+
+        // Parallelize requests
+        const promises = [
+            fetchStatus(),
+            fetchBotStatus(),
+            fetchMiniChart()
+        ];
+
+        // Conditional fetches based on active tab
+        if (currentTab === 'trades') {
+            promises.push(fetchHistory());
+        } else if (currentTab === 'ai-logs') {
+            promises.push(fetchAiLogs());
+        } else if (currentTab === 'running-bots') {
+            promises.push(fetchRunningBots());
+        }
+
+        await Promise.allSettled(promises);
+    }
+
+    // Debounced version for pair switching
+    const debouncedRefresh = debounce(() => {
+        refreshDashboard();
+    }, 200); // Reduced to 200ms for snappier feel
+
     document.getElementById("pair").addEventListener("change", () => {
-      fetchStatus();
-      fetchMiniChart();
-      fetchHistory();
-      fetchBotStatus();
+      // Clear charts/data immediately to indicate change
+      document.getElementById("mini-chart-label").innerHTML = '<span class="opacity-50">Loading...</span>';
+      
+      // Immediate visual feedback for pair-specific cards using skeletons
+      const loadingSkeleton = `
+        <div class="animate-pulse flex flex-col justify-center h-full py-1">
+            <div class="h-2 bg-white/10 rounded w-1/3 mb-2"></div>
+            <div class="h-5 bg-white/10 rounded w-2/3"></div>
+        </div>
+      `;
+      
+      document.getElementById('status-current-price').innerHTML = loadingSkeleton;
+      document.getElementById('status-open-position').innerHTML = loadingSkeleton;
+      document.getElementById('status-open-orders').innerHTML = loadingSkeleton;
+      
+      // Note: We don't clear margin/account value as those are global
+      
+      debouncedRefresh();
     });
 
     // Live clock & status refresh
-    setInterval(() => {
-      document.getElementById("clock").textContent = new Date().toLocaleTimeString();
-      if (getStoredKey()) {
-        fetchStatus();
-        fetchMiniChart();
-        fetchBotStatus(); // Add bot status polling
-        // Refresh based on active tab
-        if (currentTab === 'trades') {
-            fetchHistory();
-        } else if (currentTab === 'ai-logs') {
-            fetchAiLogs();
-        } else if (currentTab === 'running-bots') {
-            fetchRunningBots();
-        }
-      }
-    }, 5000); // Refresh every 5 seconds
+    // Use recursive setTimeout instead of setInterval to prevent queue buildup
+    let pollingTimer = null;
+    
+    async function startPolling() {
+        if (pollingTimer) clearTimeout(pollingTimer);
+        
+        const poll = async () => {
+            document.getElementById("clock").textContent = new Date().toLocaleTimeString();
+            if (getStoredKey()) {
+                await refreshDashboard();
+            }
+            pollingTimer = setTimeout(poll, 5000);
+        };
+        
+        poll();
+    }
     
     // Initial load
     if (!getStoredKey()) {
         showApiKeyModal();
     } else {
         initPairs(); // Initialize pairs
-        fetchStatus();
-        fetchMiniChart();
-        fetchHistory();
-        fetchAiLogs();
-        fetchBotStatus();
+        startPolling(); // Start polling loop
         fetchSettings(); // Fetch settings on load
     }
 
