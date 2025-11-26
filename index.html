@@ -398,6 +398,22 @@
 
       <!-- Tab Content: AI Logs -->
       <div id="tab-content-ai-logs" class="hidden">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+            <div class="flex items-center gap-2">
+                <label class="text-[10px] font-bold uppercase tracking-wide opacity-70">Prompt:</label>
+                <select id="ai-log-filter" onchange="filterAiLogs(this.value)" class="bg-white/10 border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-violet-500">
+                    <option value="All">All</option>
+                </select>
+            </div>
+            <div class="flex gap-3 text-xs">
+                <div class="px-3 py-1 rounded bg-green-500/10 border border-green-500/20 text-green-400">
+                    Longs: <span id="ai-log-longs" class="font-bold">0</span>
+                </div>
+                <div class="px-3 py-1 rounded bg-red-500/10 border border-red-500/20 text-red-400">
+                    Shorts: <span id="ai-log-shorts" class="font-bold">0</span>
+                </div>
+            </div>
+        </div>
         <div id="ai-logs-container" class="flex flex-col gap-3 max-h-[600px] overflow-y-auto pr-1">
             <div class="glass rounded-xl p-6 text-center opacity-50">Loading AI logs...</div>
         </div>
@@ -405,6 +421,9 @@
 
       <!-- Tab Content: Running Bots -->
       <div id="tab-content-running-bots" class="hidden">
+        <div id="running-bots-stats" class="flex flex-wrap gap-2 mb-4 text-xs">
+             <!-- Stats injected via JS -->
+        </div>
         <div id="running-bots-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[600px] overflow-y-auto pr-1">
             <div class="glass rounded-xl p-6 text-center opacity-50 col-span-full">Loading bots...</div>
         </div>
@@ -523,6 +542,8 @@
     let selectedDirection = "LONG";
     let chartInterval = "3m"; // Default to 3m
     let lastFetchedTrades = [];
+    let lastFetchedAiLogs = []; // New global
+    let currentAiLogFilter = 'All'; // Persist filter selection
     let currentHistoryRange = 24;
     let currentTab = 'trades';
     let lastAiSignal = null; // Store last AI signal for modal execution
@@ -768,13 +789,47 @@
 
     function renderRunningBots(bots) {
         const container = document.getElementById('running-bots-container');
+        const statsContainer = document.getElementById('running-bots-stats');
+        
         if (!bots || bots.length === 0) {
             container.innerHTML = '<div class="glass rounded-xl p-6 text-center opacity-50 col-span-full">No bots initialized.</div>';
+            statsContainer.innerHTML = '';
             return;
         }
         
         const runningBots = bots.filter(b => b.running);
         
+        // --- Calculate Stats ---
+        const totalRunning = runningBots.length;
+        let totalPnl = 0;
+        let totalLongs = 0;
+        let totalShorts = 0;
+
+        runningBots.forEach(b => {
+            totalPnl += (b.stats?.pnl || 0);
+            totalLongs += (b.stats?.longs || 0);
+            totalShorts += (b.stats?.shorts || 0);
+        });
+
+        statsContainer.innerHTML = `
+            <div class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 flex items-center gap-2">
+                <span class="opacity-50 uppercase tracking-wider text-[10px]">Active</span>
+                <span class="font-bold text-white">${totalRunning}</span>
+            </div>
+            <div class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 flex items-center gap-2">
+                <span class="opacity-50 uppercase tracking-wider text-[10px]">PnL</span>
+                <span class="font-mono font-bold ${totalPnl >= 0 ? 'text-green-400' : 'text-red-400'}">${totalPnl >= 0 ? '+' : ''}$${formatPrice(totalPnl)}</span>
+            </div>
+            <div class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 flex items-center gap-2">
+                <span class="opacity-50 uppercase tracking-wider text-[10px]">Longs</span>
+                <span class="font-bold text-green-400">${totalLongs}</span>
+            </div>
+            <div class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 flex items-center gap-2">
+                <span class="opacity-50 uppercase tracking-wider text-[10px]">Shorts</span>
+                <span class="font-bold text-red-400">${totalShorts}</span>
+            </div>
+        `;
+
         if (runningBots.length === 0) {
              container.innerHTML = '<div class="glass rounded-xl p-6 text-center opacity-50 col-span-full">No active bots running.</div>';
              return;
@@ -796,10 +851,14 @@
             }
 
             const isCounter = bot.counter_trade === true;
-            // Only show badge if Counter trade is active
             const counterBadge = isCounter 
                 ? `<span class="ml-2 text-[8px] font-bold text-amber-400 bg-amber-400/10 px-1.5 py-px rounded border border-amber-400/20 tracking-wider">COUNTER</span>` 
                 : ``;
+
+            // TP Display
+            const tpDisplay = bot.take_profit 
+                ? `<div class="flex justify-between items-center"><span class="opacity-50 text-[10px] uppercase">TP</span><span class="font-mono text-blue-300">$${formatPrice(bot.take_profit)}</span></div>` 
+                : '';
 
             let contentHtml = '';
             
@@ -830,6 +889,7 @@
                             <span class="opacity-50 text-[10px] uppercase">Liq</span>
                             <span class="font-mono text-orange-400">$${formatPrice(pos.liquidation_price)}</span>
                         </div>
+                        ${tpDisplay}
                         <div class="flex justify-between items-center">
                             <span class="opacity-50 text-[10px] uppercase">Margin</span>
                             <span class="font-mono">$${formatPrice(pos.margin_used)}</span>
@@ -851,6 +911,11 @@
                             <div class="opacity-50 text-[10px] uppercase tracking-wide">Size</div>
                             <div class="font-mono font-bold">$${bot.trade_size_usd}</div>
                         </div>
+                        ${bot.take_profit ? `
+                        <div class="bg-white/5 rounded p-2 border border-white/5">
+                            <div class="opacity-50 text-[10px] uppercase tracking-wide">TP</div>
+                            <div class="font-mono font-bold text-blue-300">$${formatPrice(bot.take_profit)}</div>
+                        </div>` : ''}
                     </div>
                 `;
             }
@@ -910,20 +975,63 @@
     async function fetchAiLogs() {
         try {
             const res = await axios.get(`${getApiBase()}/ai_trades?limit=50`);
-            renderAiLogs(res.data);
+            lastFetchedAiLogs = res.data;
+            renderAiLogs(lastFetchedAiLogs, currentAiLogFilter);
         } catch (err) {
             console.error("Failed to fetch AI logs:", err);
         }
     }
 
-    function renderAiLogs(logs) {
+    function filterAiLogs(promptVal) {
+        currentAiLogFilter = promptVal;
+        renderAiLogs(lastFetchedAiLogs, currentAiLogFilter);
+    }
+
+    function renderAiLogs(logs, filterPrompt = 'All') {
         const container = document.getElementById('ai-logs-container');
+        const filterSelect = document.getElementById('ai-log-filter');
+        const longsCountEl = document.getElementById('ai-log-longs');
+        const shortsCountEl = document.getElementById('ai-log-shorts');
+
         if (!logs || logs.length === 0) {
             container.innerHTML = '<div class="glass rounded-xl p-6 text-center opacity-50">No AI logs found.</div>';
             return;
         }
 
-        container.innerHTML = logs.map(log => {
+        // --- Populate Filter Dropdown (only if needed or just refresh it) ---
+        // Get unique prompts
+        const prompts = [...new Set(logs.map(l => (l.signal_output && l.signal_output.prompt_used) ? l.signal_output.prompt_used : 'Unknown'))].sort();
+        
+        // Save current selection if we are re-rendering
+        const currentSelection = filterSelect.value === 'All' && filterPrompt !== 'All' ? filterPrompt : filterSelect.value;
+        
+        filterSelect.innerHTML = `<option value="All">All</option>` + prompts.map(p => `<option value="${p}">${p}</option>`).join('');
+        filterSelect.value = filterPrompt;
+
+        // --- Filter Logs ---
+        let filteredLogs = logs;
+        if (filterPrompt !== 'All') {
+            filteredLogs = logs.filter(l => {
+                const p = (l.signal_output && l.signal_output.prompt_used) ? l.signal_output.prompt_used : 'Unknown';
+                return p === filterPrompt;
+            });
+        }
+
+        // --- Count Stats ---
+        let longCount = 0;
+        let shortCount = 0;
+        filteredLogs.forEach(l => {
+            const signal = l.signal_output || {};
+            const direction = l.direction || signal.signal || '';
+            if (direction === 'LONG') longCount++;
+            if (direction === 'SHORT') shortCount++;
+        });
+        
+        longsCountEl.textContent = longCount;
+        shortsCountEl.textContent = shortCount;
+
+        // --- Render ---
+        container.innerHTML = filteredLogs.map(log => {
             const date = new Date(log.timestamp);
             const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
             const signal = log.signal_output || {};
