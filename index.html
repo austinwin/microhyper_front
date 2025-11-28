@@ -2910,20 +2910,20 @@
 
     async function controlBattle(action, sessionName = null) {
       const session = sessionName || currentBattleSession;
-      console.log(`[DEBUG] controlBattle: action=${action}, session=${session}`);
+      //console.log(`[DEBUG] controlBattle: action=${action}, session=${session}`);
       if (!session) return showToast("Select a session", true);
       
       const btnId = action === 'start' ? 'btn-battle-start' : 'btn-battle-stop';
       setLoading(true, btnId);
 
       try {
-        console.log(`[DEBUG] Sending POST to /battle/control`);
+        //console.log(`[DEBUG] Sending POST to /battle/control`);
         const res = await axios.post(`${getApiBase()}/battle/control`, { session_name: session, action });
-        console.log(`[DEBUG] controlBattle response:`, res.data);
+        //console.log(`[DEBUG] controlBattle response:`, res.data);
         showToast(`Session ${session} ${action}ed`);
         fetchBattles();
       } catch (err) {
-        console.error("[DEBUG] controlBattle error:", err);
+        //console.error("[DEBUG] controlBattle error:", err);
         showToast("Failed to control session", true);
       } finally {
         setLoading(false, btnId);
@@ -2932,7 +2932,7 @@
 
     async function deleteBattle(name = null) {
       const session = name || currentBattleSession;
-      console.log(`[DEBUG] deleteBattle: session=${session}`);
+      //console.log(`[DEBUG] deleteBattle: session=${session}`);
       if (!session) return showToast("Select a session", true);
       
       if (!confirm(`Delete session "${session}"? This cannot be undone.`)) return;
@@ -2940,14 +2940,14 @@
       setLoading(true, 'btn-battle-delete');
 
       try {
-        console.log(`[DEBUG] Sending POST to /battle/delete`);
+        //console.log(`[DEBUG] Sending POST to /battle/delete`);
         const res = await axios.post(`${getApiBase()}/battle/delete`, { session_name: session });
-        console.log(`[DEBUG] deleteBattle response:`, res.data);
+        //console.log(`[DEBUG] deleteBattle response:`, res.data);
         showToast(`Deleted session ${session}`);
         if (currentBattleSession === session) deselectSession();
         fetchBattles();
       } catch (err) {
-        console.error("[DEBUG] deleteBattle error:", err);
+        //console.error("[DEBUG] deleteBattle error:", err);
         showToast("Failed to delete session", true);
       } finally {
         setLoading(false, 'btn-battle-delete');
