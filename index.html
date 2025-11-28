@@ -200,28 +200,28 @@
         <div>
             <label class="block text-[10px] font-bold uppercase tracking-wide opacity-70 mb-1">AI Creativity (Temp)</label>
             <input type="number" id="sys-temp" min="0" max="2.0" step="0.1" class="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/15 focus:border-violet-500 focus:outline-none text-sm font-mono text-violet-300">
-            <p class="text-[9px] opacity-40 mt-1">Higher values make AI more creative/random. Lower values make it deterministic.</p>
+            <p class="text-[10px] opacity-80 mt-1">Higher, more randome. Lower, more deterministic.</p>
         </div>
 
         <!-- AI Interval -->
         <div>
             <label class="block text-[10px] font-bold uppercase tracking-wide opacity-70 mb-1">Analysis Freq (Min)</label>
             <input type="number" id="sys-interval" min="0.5" step="0.1" class="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/15 focus:border-violet-500 focus:outline-none text-sm font-mono text-violet-300">
-            <p class="text-[9px] opacity-40 mt-1">How often the bot analyzes the market for new signals.</p>
+            <p class="text-[10px] opacity-80 mt-1">How often the bot analyzes the market for new signals.</p>
         </div>
 
         <!-- Cooldown -->
         <div>
             <label class="block text-[10px] font-bold uppercase tracking-wide opacity-70 mb-1">Cooldown (Min)</label>
             <input type="number" id="sys-cooldown" min="0.5" step="0.1" class="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/15 focus:border-violet-500 focus:outline-none text-sm font-mono text-violet-300">
-            <p class="text-[9px] opacity-40 mt-1">Wait time after closing a position before trading again.</p>
+            <p class="text-[10px] opacity-80 mt-1">Wait time after closing a position before trading again.</p>
         </div>
 
         <!-- AI Flip Interval -->
         <div>
             <label class="block text-[10px] font-bold uppercase tracking-wide opacity-70 mb-1">Flip Check Freq (Min)</label>
             <input type="number" id="sys-flip" min="1" step="0.1" class="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/15 focus:border-violet-500 focus:outline-none text-sm font-mono text-violet-300">
-            <p class="text-[9px] opacity-40 mt-1">How often to check for reversal signals while in a position.</p>
+            <p class="text-[10px] opacity-80 mt-1">How often to check for reversal signals while in a position.</p>
         </div>
       </div>
 
@@ -304,13 +304,13 @@
                                     <div id="aiflip-switch" class="w-7 h-3.5 rounded-full bg-white/10 relative transition-colors border border-white/10">
                                         <div id="aiflip-knob" class="absolute left-0.5 top-px w-2.5 h-2.5 rounded-full bg-white/40 transition-all"></div>
                                     </div>
-                                    <span class="text-[9px] uppercase font-bold opacity-40 transition-colors" id="aiflip-label">Flip</span>
+                                    <span class="text-[9px] uppercase font-bold opacity-40 transition-colors" id="aiflip-label">AiFlip</span>
                                 </div>
                             </div>
                         </div>
                         <div class="flex flex-wrap justify-between items-center mt-2 pr-1 gap-y-1">
-                             <div id="bot-status-text" class="text-[12px] opacity-50 whitespace-nowrap leading-none mr-2">System Idle</div>
-                             <div id="market-changes" class="flex gap-2 text-[11px] font-mono opacity-70"></div>
+                             <div id="bot-status-text" class="text-[12px] opacity-80 whitespace-nowrap leading-none mr-2">System Idle</div>
+                             <div id="market-changes" class="flex gap-2 text-[11px] font-mono opacity-80"></div>
                         </div>
                     </div>
                  </div>
@@ -2326,6 +2326,16 @@
                 if (aiFlipActive !== data.aiflip) {
                     aiFlipActive = data.aiflip;
                     updateAiFlipUI();
+                }
+            }else {
+                // Reset defaults if bot is not running
+                if (aiFlipActive) {
+                    aiFlipActive = false;
+                    updateAiFlipUI();
+                }
+                if (counterTradeActive) {
+                    counterTradeActive = false;
+                    updateCounterTradeUI();
                 }
             }
             
