@@ -2730,7 +2730,7 @@
       const modal = document.getElementById('battle-modal');
       modal.classList.remove('hidden');
       setTimeout(() => modal.classList.add('show'), 10);
-      fetchBattles();
+      await fetchBattles();
       await populateBattlePairs();
       
       // Start chart refresh loop
@@ -2798,11 +2798,12 @@
         }
 
         // Auto-select first session if none selected
+        let shouldRefreshChart = false;
         if (!currentBattleSession) {
             currentBattleSession = sessions[0].name;
             document.getElementById('battle-selected-session-label').textContent = currentBattleSession;
             document.getElementById('battle-manage-area').classList.remove('hidden');
-            viewBattleChart();
+            shouldRefreshChart = true;
         }
         
         // Populate list
@@ -2838,7 +2839,10 @@
         // Populate select for chart
         select.innerHTML = `<option value="">Select session for Chart</option>` + sessions.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
         select.value = currentBattleSession;
-        
+        // Refresh chart if we just auto-selected
+        if (shouldRefreshChart) {
+            viewBattleChart();
+        }
       } catch (err) {
         console.error("Failed to load battles:", err);
         container.innerHTML = '<div class="text-red-400 p-4 text-center">Failed to load sessions.</div>';
@@ -2982,7 +2986,7 @@
     function renderBattleChart(data) {
       const canvas = document.getElementById('battle-chart');
       const ctx = canvas.getContext('2d');
-      
+      const sessionName = document.getElementById('battle-chart-session').value;
       if (battleChartInstance) {
         battleChartInstance.destroy();
       }
@@ -3054,13 +3058,21 @@
               responsive: true,
               maintainAspectRatio: false,
               layout: {
-                  padding: { right: 45, left: 0, top: 10, bottom: 0 }
+                  padding: { right: 0, left: 0, top: 10, bottom: 0 }
               },
               interaction: {
                   mode: 'index',
                   intersect: false,
               },
               plugins: {
+                   title: {
+                      display: true,
+                      text: sessionName,
+                      align: 'center', // <-- Center the title
+                      color: '#fbbf24', // Amber-400 to match theme
+                      font: { size: 13, weight: 'bold' },
+                      padding: { bottom: 1 }
+                  },
                   legend: {
                       labels: { color: 'rgba(255, 255, 255, 0.7)', font: { size: 10 } }
                   },
@@ -3085,10 +3097,6 @@
                   x: {
                       type: 'time',
                       time: {
-                          displayFormats: {
-                              minute: 'MMM d h:mm a',
-                              hour: 'MMM d h:mm a'
-                          },
                           tooltipFormat: 'MMM d h:mm a'
                       },
                       grid: {
@@ -3102,8 +3110,15 @@
                           autoSkip: true,
                           maxRotation: 0,
                           minRotation: 0,
-                          autoSkipPadding: 20,
-                          maxTicksLimit: 8
+                          autoSkipPadding: 15,
+                          //maxTicksLimit: 8,
+                          callback: function(value) {
+                              const d = new Date(value);
+                              return [
+                                  d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                                  d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+                              ];
+                          }
                       }
                   },
                   y: {
