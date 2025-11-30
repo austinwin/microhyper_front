@@ -394,76 +394,76 @@
           </div>
 
           <!-- AI Control Center -->
-          <div class="mb-4 p-2 rounded-xl bg-white/5 border border-white/10">
-             <!-- Header: Status & Settings -->
-             <div class="flex items-start justify-between mb-2">
-                 <div class="flex gap-2 w-full">
-                    <div id="bot-indicator" class="w-2.5 h-2.5 rounded-full bg-gray-500 transition-colors flex-shrink-0 mt-1.5"></div>
-                    <div class="flex flex-col min-w-0 w-full">
-                        <div class="flex flex-wrap items-center gap-y-2 gap-x-3">
-                            <div class="flex items-center gap-2">
-                                <!-- Settings (Inline) -->
-                                <button onclick="openSettingsModal()" class="w-5 h-5 flex items-center justify-center rounded hover:bg-white/20 transition-colors" title="Prompt Settings">
-                                    <i class="fas fa-cog text-[20px] text-white/70"></i>
-                                </button>
-                                <span id="persona-badge" class="text-[9px] font-bold uppercase tracking-wider bg-violet-500/20 px-1.5 py-0.5 rounded border border-violet-500/30 text-violet-200 truncate max-w-[120px] opacity-0 transition-opacity">--</span>
-                            </div>
-                            
-                            <div class="flex items-center gap-3 ml-auto sm:ml-0">
-                                <!-- Counter Trade Switch -->
-                                <div class="flex items-center gap-1.5 cursor-pointer group" onclick="toggleCounterTrade()" title="Counter Trade Mode (Invert AI Signals)">
-                                    <div id="counter-trade-switch" class="w-7 h-3.5 rounded-full bg-white/10 relative transition-colors border border-white/10">
-                                        <div id="counter-trade-knob" class="absolute left-0.5 top-px w-2.5 h-2.5 rounded-full bg-white/40 transition-all"></div>
-                                    </div>
-                                    <span class="text-[9px] uppercase font-bold opacity-40 transition-colors" id="counter-trade-label">Norm</span>
-                                </div>
+          <div class="mb-4 p-3 rounded-2xl bg-white/5 border border-white/10 shadow-inner">
+             <!-- Top Row: Status & Settings -->
+             <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-3 bg-black/20 px-3 py-1.5 rounded-lg border border-white/5">
+                    <div id="bot-indicator" class="w-2.5 h-2.5 rounded-full bg-gray-500 transition-colors shadow-[0_0_8px_rgba(255,255,255,0.2)]"></div>
+                    <span id="bot-status-text" class="text-xs font-bold opacity-90 tracking-wide">System Idle</span>
+                </div>
+                <button onclick="openSettingsModal()" class="w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 transition-colors border border-white/5 shadow-sm" title="Prompt Settings">
+                    <i class="fas fa-cog text-white/70 text-sm"></i>
+                </button>
+             </div>
 
-                                <!-- AI Flip Switch -->
-                                <div class="flex items-center gap-1.5 cursor-pointer group" onclick="toggleAiFlip()" title="AI Flip Mode (Close position on strong opposing signal)">
-                                    <div id="aiflip-switch" class="w-7 h-3.5 rounded-full bg-white/10 relative transition-colors border border-white/10">
-                                        <div id="aiflip-knob" class="absolute left-0.5 top-px w-2.5 h-2.5 rounded-full bg-white/40 transition-all"></div>
-                                    </div>
-                                    <span class="text-[9px] uppercase font-bold opacity-40 transition-colors" id="aiflip-label">AiFlip</span>
-                                </div>
+             <!-- Middle Row: Toggles & Persona -->
+             <div class="flex flex-col gap-3 mb-4">
+                <!-- Persona & Market Stats Row -->
+                <div class="flex items-center justify-between gap-2">
+                     <div class="flex items-center gap-2 bg-violet-500/10 px-2 py-1 rounded border border-violet-500/20">
+                        <i class="fas fa-user-astronaut text-violet-400 text-[10px]"></i>
+                        <span id="persona-badge" class="text-[10px] font-bold uppercase tracking-wider text-violet-200 truncate max-w-[120px] transition-opacity">--</span>
+                     </div>
+                     <div id="market-changes" class="flex gap-2 text-[10px] font-mono opacity-60"></div>
+                </div>
 
-                                <!-- Auto Config Switch -->
-                                <div class="flex items-center gap-1.5 cursor-pointer group" onclick="toggleAutoConfig()" title="Auto Config Mode (AI adjusts system parameters)">
-                                    <div id="autoconfig-switch" class="w-7 h-3.5 rounded-full bg-white/10 relative transition-colors border border-white/10">
-                                        <div id="autoconfig-knob" class="absolute left-0.5 top-px w-2.5 h-2.5 rounded-full bg-white/40 transition-all"></div>
-                                    </div>
-                                    <span class="text-[9px] uppercase font-bold opacity-40 transition-colors" id="autoconfig-label">AiCfg</span>
-                                </div>
-                            </div>
+                <!-- Switches Row -->
+                <div class="grid grid-cols-3 gap-2 bg-black/20 p-2 rounded-xl border border-white/5">
+                    <!-- Counter Trade Switch -->
+                    <div class="flex flex-col items-center gap-1.5 cursor-pointer group p-1 rounded hover:bg-white/5 transition-colors" onclick="toggleCounterTrade()" title="Counter Trade Mode">
+                        <div id="counter-trade-switch" class="w-9 h-5 rounded-full bg-white/10 relative transition-colors border border-white/10">
+                            <div id="counter-trade-knob" class="absolute left-0.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white/40 transition-all shadow-sm"></div>
                         </div>
-                        <div class="flex flex-wrap justify-between items-center mt-2 pr-1 gap-y-1">
-                             <div id="bot-status-text" class="text-[12px] opacity-80 whitespace-nowrap leading-none mr-2">System Idle</div>
-                             <div id="market-changes" class="flex gap-2 text-[11px] font-mono opacity-80"></div>
-                        </div>
+                        <span class="text-[9px] uppercase font-bold opacity-40 transition-colors" id="counter-trade-label">Follow AI</span>
                     </div>
-                 </div>
+
+                    <!-- AI Flip Switch -->
+                    <div class="flex flex-col items-center gap-1.5 cursor-pointer group p-1 rounded hover:bg-white/5 transition-colors" onclick="toggleAiFlip()" title="AI Flip Mode">
+                        <div id="aiflip-switch" class="w-9 h-5 rounded-full bg-white/10 relative transition-colors border border-white/10">
+                            <div id="aiflip-knob" class="absolute left-0.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white/40 transition-all shadow-sm"></div>
+                        </div>
+                        <span class="text-[9px] uppercase font-bold opacity-40 transition-colors" id="aiflip-label">Reversal</span>
+                    </div>
+
+                    <!-- Auto Config Switch -->
+                    <div class="flex flex-col items-center gap-1.5 cursor-pointer group p-1 rounded hover:bg-white/5 transition-colors" onclick="toggleAutoConfig()" title="Auto Config Mode">
+                        <div id="autoconfig-switch" class="w-9 h-5 rounded-full bg-white/10 relative transition-colors border border-white/10">
+                            <div id="autoconfig-knob" class="absolute left-0.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white/40 transition-all shadow-sm"></div>
+                        </div>
+                        <span class="text-[9px] uppercase font-bold opacity-40 transition-colors" id="autoconfig-label">Auto Config</span>
+                    </div>
+                </div>
              </div>
 
              <!-- AI Actions Grid -->
-             <div class="grid grid-cols-3 gap-2">
+             <div class="grid grid-cols-3 gap-3">
                   <!-- Auto Bot -->
-                 <button id="btn-bot-toggle" onclick="toggleBot()" class="flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 transition-all group relative overflow-hidden">
+                 <button id="btn-bot-toggle" onclick="toggleBot()" class="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all group relative overflow-hidden shadow-sm">
                     <div class="absolute inset-0 bg-gradient-to-tr from-green-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                     <i class="fas fa-power-off text-green-400 text-sm group-hover:scale-110 transition-transform"></i>
-                    <span class="text-s font-bold opacity-90">Auto</span>
+                    <span class="text-xs font-bold opacity-90">Auto</span>
                  </button>
                  <!-- Ask AI -->
-                 <button id="btn-ask-ai" onclick="askAi()" class="flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 transition-all group">
+                 <button id="btn-ask-ai" onclick="askAi()" class="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all group shadow-sm">
                     <i class="fas fa-comment-dots text-violet-300 text-sm group-hover:scale-110 transition-transform"></i>
-                    <span class="text-s font-bold opacity-90">Ask AI</span>
+                    <span class="text-xs font-bold opacity-90">Ask AI</span>
                  </button>
 
                  <!-- Trade AI (Single) -->
-                 <button id="btn-ai" onclick="executeAITrade()" class="flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 transition-all group">
+                 <button id="btn-ai" onclick="executeAITrade()" class="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all group shadow-sm">
                     <i class="fas fa-robot text-blue-300 text-sm group-hover:scale-110 transition-transform"></i>
-                    <span class="text-s font-bold opacity-90">1 Trade</span>
+                    <span class="text-xs font-bold opacity-90">1 Trade</span>
                  </button>
-
-
              </div>
           </div>
 
@@ -940,18 +940,18 @@
             switchEl.classList.remove('bg-white/10', 'border-white/10');
             switchEl.classList.add('bg-amber-500/20', 'border-amber-500/50');
             
-            knob.classList.add('translate-x-3');
+            knob.classList.add('translate-x-4');
             knob.classList.remove('bg-white/40');
             knob.classList.add('bg-amber-400');
             
-            label.textContent = "Counter";
+            label.textContent = "Against AI";
             label.classList.remove('opacity-40');
             label.classList.add('text-amber-400', 'opacity-100');
         } else {
             switchEl.classList.add('bg-white/10', 'border-white/10');
             switchEl.classList.remove('bg-amber-500/20', 'border-amber-500/50');
             
-            knob.classList.remove('translate-x-3');
+            knob.classList.remove('translate-x-4');
             knob.classList.add('bg-white/40');
             knob.classList.remove('bg-amber-400');
             
@@ -976,7 +976,7 @@
             switchEl.classList.remove('bg-white/10', 'border-white/10');
             switchEl.classList.add('bg-blue-500/20', 'border-blue-500/50');
             
-            knob.classList.add('translate-x-3');
+            knob.classList.add('translate-x-4');
             knob.classList.remove('bg-white/40');
             knob.classList.add('bg-blue-400');
             
@@ -986,7 +986,7 @@
             switchEl.classList.add('bg-white/10', 'border-white/10');
             switchEl.classList.remove('bg-blue-500/20', 'border-blue-500/50');
             
-            knob.classList.remove('translate-x-3');
+            knob.classList.remove('translate-x-4');
             knob.classList.add('bg-white/40');
             knob.classList.remove('bg-blue-400');
             
@@ -1010,7 +1010,7 @@
             switchEl.classList.remove('bg-white/10', 'border-white/10');
             switchEl.classList.add('bg-purple-500/20', 'border-purple-500/50');
             
-            knob.classList.add('translate-x-3');
+            knob.classList.add('translate-x-4');
             knob.classList.remove('bg-white/40');
             knob.classList.add('bg-purple-400');
             
@@ -1020,7 +1020,7 @@
             switchEl.classList.add('bg-white/10', 'border-white/10');
             switchEl.classList.remove('bg-purple-500/20', 'border-purple-500/50');
             
-            knob.classList.remove('translate-x-3');
+            knob.classList.remove('translate-x-4');
             knob.classList.add('bg-white/40');
             knob.classList.remove('bg-purple-400');
             
@@ -2665,32 +2665,32 @@
         const statusText = document.getElementById('bot-status-text');
         
         if (data.running) {
-            btn.className = "flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 transition-all group relative overflow-hidden";
+            btn.className = "flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 transition-all group relative overflow-hidden shadow-sm";
             btn.innerHTML = `
                 <i class="fas fa-stop text-red-400 text-sm group-hover:scale-110 transition-transform"></i>
-                <span class="text-s font-bold opacity-90 text-red-300">Stop</span>
+                <span class="text-xs font-bold opacity-90 text-red-300">Stop</span>
             `;
             
-            indicator.className = "w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)] pulse flex-shrink-0 mt-0.5";
+            indicator.className = "w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)] pulse flex-shrink-0";
             
             let statusMsg = "Running";
             if (data.cooldown_active) {
                 statusMsg = `Cooldown (${data.cooldown_remaining}s)`;
-                indicator.className = "w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse flex-shrink-0 mt-0.5";
+                indicator.className = "w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse flex-shrink-0";
             } else if (data.position_open) {
                 statusMsg = "Monitoring Position";
-                indicator.className = "w-2.5 h-2.5 rounded-full bg-blue-500 flex-shrink-0 mt-0.5";
+                indicator.className = "w-2.5 h-2.5 rounded-full bg-blue-500 flex-shrink-0";
             }
             statusText.textContent = statusMsg;
         } else {
-            btn.className = "flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 transition-all group relative overflow-hidden";
+            btn.className = "flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all group relative overflow-hidden shadow-sm";
             btn.innerHTML = `
                 <div class="absolute inset-0 bg-gradient-to-tr from-green-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 <i class="fas fa-power-off text-green-400 text-sm group-hover:scale-110 transition-transform"></i>
-                <span class="text-s font-bold opacity-90">Auto</span>
+                <span class="text-xs font-bold opacity-90">Auto</span>
             `;
             
-            indicator.className = "w-2.5 h-2.5 rounded-full bg-gray-500 flex-shrink-0 mt-0.5";
+            indicator.className = "w-2.5 h-2.5 rounded-full bg-gray-500 flex-shrink-0";
             statusText.textContent = "Stopped";
         }
     }
@@ -2721,7 +2721,7 @@
         try {
             const res = await axios.post(`${getApiBase()}/bot/configure`, payload);
             if (res.data.status === "started") {
-                showToast(`Auto Bot Started (${currentPersona}${counterTradeActive ? ', Counter' : ''}${aiFlipActive ? ', Flip' : ''}${autoConfigActive ? ', AiCfg' : ''})`);
+                showToast(`Auto Bot Started (${currentPersona}${counterTradeActive ? ', Against AI' : ''}${aiFlipActive ? ', Support Reversal' : ''}${autoConfigActive ? ', Auto Config' : ''})`);
                 isBotRunning = true;
             } else {
                 showToast("Auto Bot Stopped");
