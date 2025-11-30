@@ -336,6 +336,21 @@
     </div>
   </div>
 
+  <!-- Bot Details Modal -->
+  <div id="bot-details-modal" class="fixed inset-0 z-[85] bg-black/85 backdrop-blur-sm flex items-center justify-center hidden p-4" onclick="closeBotDetailsModal(event)">
+    <div class="glass p-6 rounded-2xl w-full max-w-lg shadow-2xl border border-violet-500/30 relative max-h-[85vh] overflow-y-auto" onclick="event.stopPropagation()">
+      <button onclick="closeBotDetailsModal()" class="absolute top-4 right-4 text-white/50 hover:text-white">
+        <i class="fas fa-times"></i>
+      </button>
+      <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+        <i class="fas fa-robot text-violet-400"></i> Bot Configuration
+      </h2>
+      <div id="bot-details-content" class="space-y-4 text-sm">
+        <!-- Content injected via JS -->
+      </div>
+    </div>
+  </div>
+
   <!-- Floating Battle Button -->
   <button onclick="openBattleManager()" class="fixed bottom-6 right-24 z-40 w-14 h-14 rounded-full bg-amber-500 hover:bg-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.4)] flex items-center justify-center transition-all hover:scale-110 group border border-white/10">
     <i class="fas fa-trophy text-white text-xl transition-transform duration-500"></i>
@@ -387,7 +402,6 @@
                     <div class="flex flex-col min-w-0 w-full">
                         <div class="flex flex-wrap items-center gap-y-2 gap-x-3">
                             <div class="flex items-center gap-2">
-                                <span class="text-xs font-bold uppercase tracking-wide whitespace-nowrap">AI</span>
                                 <!-- Settings (Inline) -->
                                 <button onclick="openSettingsModal()" class="w-5 h-5 flex items-center justify-center rounded hover:bg-white/20 transition-colors" title="Prompt Settings">
                                     <i class="fas fa-cog text-[20px] text-white/70"></i>
@@ -410,6 +424,14 @@
                                         <div id="aiflip-knob" class="absolute left-0.5 top-px w-2.5 h-2.5 rounded-full bg-white/40 transition-all"></div>
                                     </div>
                                     <span class="text-[9px] uppercase font-bold opacity-40 transition-colors" id="aiflip-label">AiFlip</span>
+                                </div>
+
+                                <!-- Auto Config Switch -->
+                                <div class="flex items-center gap-1.5 cursor-pointer group" onclick="toggleAutoConfig()" title="Auto Config Mode (AI adjusts system parameters)">
+                                    <div id="autoconfig-switch" class="w-7 h-3.5 rounded-full bg-white/10 relative transition-colors border border-white/10">
+                                        <div id="autoconfig-knob" class="absolute left-0.5 top-px w-2.5 h-2.5 rounded-full bg-white/40 transition-all"></div>
+                                    </div>
+                                    <span class="text-[9px] uppercase font-bold opacity-40 transition-colors" id="autoconfig-label">AiCfg</span>
                                 </div>
                             </div>
                         </div>
@@ -735,6 +757,7 @@
     let chartInterval = "3m"; // Default to 3m
     let lastFetchedTrades = [];
     let lastFetchedAiLogs = []; // New global
+    let lastFetchedBots = []; // New global
     let lastFetchedPositions = []; // Store positions for sorting
     let currentAiLogFilter = 'All'; // Persist filter selection
     let currentHistoryRange = 24;
@@ -743,6 +766,7 @@
     let lastAiSignal = null; // Store last AI signal for modal execution
     let counterTradeActive = false; // New state
     let aiFlipActive = false; // New state for AI Flip
+    let autoConfigActive = false; // New state for Auto Config
     
     // Debounce utility
     function debounce(func, wait) {
@@ -971,6 +995,40 @@
         }
     }
 
+    // --- Auto Config Logic ---
+    function toggleAutoConfig() {
+        autoConfigActive = !autoConfigActive;
+        updateAutoConfigUI();
+    }
+
+    function updateAutoConfigUI() {
+        const switchEl = document.getElementById('autoconfig-switch');
+        const knob = document.getElementById('autoconfig-knob');
+        const label = document.getElementById('autoconfig-label');
+        
+        if (autoConfigActive) {
+            switchEl.classList.remove('bg-white/10', 'border-white/10');
+            switchEl.classList.add('bg-purple-500/20', 'border-purple-500/50');
+            
+            knob.classList.add('translate-x-3');
+            knob.classList.remove('bg-white/40');
+            knob.classList.add('bg-purple-400');
+            
+            label.classList.remove('opacity-40');
+            label.classList.add('text-purple-400', 'opacity-100');
+        } else {
+            switchEl.classList.add('bg-white/10', 'border-white/10');
+            switchEl.classList.remove('bg-purple-500/20', 'border-purple-500/50');
+            
+            knob.classList.remove('translate-x-3');
+            knob.classList.add('bg-white/40');
+            knob.classList.remove('bg-purple-400');
+            
+            label.classList.add('opacity-40');
+            label.classList.remove('text-purple-400', 'opacity-100');
+        }
+    }
+
     // --- Tab Logic ---
     function switchTab(tab) {
         currentTab = tab;
@@ -1016,6 +1074,7 @@
     async function fetchRunningBots() {
         try {
             const res = await axios.get(`${getApiBase()}/bot/list`);
+            lastFetchedBots = res.data;
             renderRunningBots(res.data);
         } catch (err) {
             console.error("Failed to fetch bots:", err);
@@ -1150,7 +1209,7 @@
                             <span class="opacity-50 text-[10px] uppercase">Liq</span>
                             <span class="font-mono text-orange-400">${formatUSD(pos.liquidation_price)}</span>
                         </div>
-                        ${tpDisplay}
+                                                                                             ${tpDisplay}
                         <div class="flex justify-between items-center">
                             <span class="opacity-50 text-[10px] uppercase">Margin</span>
                             <span class="font-mono">${formatUSD(pos.margin_used)}</span>
@@ -1199,8 +1258,11 @@
 
             return `
             <div class="glass rounded-xl p-4 border ${statusBg} relative overflow-hidden group transition-all cursor-pointer" onclick="selectPair('${bot.pair}')">
+                <button onclick="showBotDetails('${bot.pair}', event)" class="absolute top-0 left-0 z-10 w-6 h-6 rounded bg-blue/5 hover:bg-white/20 flex items-center justify-center text-white/50 hover:text-white transition-colors" title="Bot Details">
+                    <i class="fas fa-info text-[10px]"></i>
+                </button>
                 <div class="flex justify-between items-start mb-1">
-                    <div class="flex items-center gap-3 overflow-hidden">
+                    <div class="flex items-center gap-2 overflow-hidden">
                         <div class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center flex-shrink-0">
                             <i class="fas ${icon} ${statusColor}"></i>
                         </div>
@@ -1228,6 +1290,88 @@
             </div>
             `;
         }).join('');
+    }
+
+    function showBotDetails(pair, event) {
+        if (event) event.stopPropagation();
+        const bot = lastFetchedBots.find(b => b.pair === pair);
+        if (!bot) return;
+
+        const modal = document.getElementById('bot-details-modal');
+        const content = document.getElementById('bot-details-content');
+        
+        const configJson = JSON.stringify(bot.config || {}, null, 2);
+        const startTime = bot.start_time ? new Date(bot.start_time * 1000).toLocaleString() : 'N/A';
+        const lastCheck = bot.last_check ? new Date(bot.last_check * 1000).toLocaleString() : 'N/A';
+        const lastTrade = bot.last_trade_time ? new Date(bot.last_trade_time * 1000).toLocaleString() : 'Never';
+        
+        content.innerHTML = `
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div class="bg-white/5 p-3 rounded-lg border border-white/10">
+                    <div class="text-[10px] uppercase opacity-50">Pair</div>
+                    <div class="font-bold text-lg">${bot.pair}</div>
+                </div>
+                <div class="bg-white/5 p-3 rounded-lg border border-white/10">
+                    <div class="text-[10px] uppercase opacity-50">Status</div>
+                    <div class="font-bold ${bot.running ? 'text-green-400' : 'text-red-400'}">${bot.running ? 'Running' : 'Stopped'}</div>
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <div class="flex justify-between border-b border-white/5 pb-1">
+                    <span class="opacity-60">Leverage</span>
+                    <span class="font-mono">${bot.leverage}x</span>
+                </div>
+                <div class="flex justify-between border-b border-white/5 pb-1">
+                    <span class="opacity-60">Trade Size</span>
+                    <span class="font-mono">$${bot.trade_size_usd}</span>
+                </div>
+                <div class="flex justify-between border-b border-white/5 pb-1">
+                    <span class="opacity-60">Take Profit</span>
+                    <span class="font-mono">${bot.user_tp ? '$'+bot.user_tp : 'Auto'}</span>
+                </div>
+                <div class="flex justify-between border-b border-white/5 pb-1">
+                    <span class="opacity-60">Persona</span>
+                    <span class="font-mono text-violet-300">${bot.persona_set}</span>
+                </div>
+                <div class="flex justify-between border-b border-white/5 pb-1">
+                    <span class="opacity-60">Counter Trade</span>
+                    <span class="font-mono ${bot.counter_trade ? 'text-amber-400' : ''}">${bot.counter_trade}</span>
+                </div>
+                <div class="flex justify-between border-b border-white/5 pb-1">
+                    <span class="opacity-60">AI Flip</span>
+                    <span class="font-mono ${bot.aiflip ? 'text-blue-400' : ''}">${bot.aiflip}</span>
+                </div>
+                <div class="flex justify-between border-b border-white/5 pb-1">
+                    <span class="opacity-60">Auto Config</span>
+                    <span class="font-mono ${bot.auto_config ? 'text-purple-400' : ''}">${bot.auto_config}</span>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <div class="text-[10px] uppercase opacity-50 mb-1">Timestamps</div>
+                <div class="grid grid-cols-1 gap-1 text-xs opacity-80">
+                    <div class="flex justify-between"><span>Started:</span> <span>${startTime}</span></div>
+                    <div class="flex justify-between"><span>Last Check:</span> <span>${lastCheck}</span></div>
+                    <div class="flex justify-between"><span>Last Trade:</span> <span>${lastTrade}</span></div>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <div class="text-[10px] uppercase opacity-50 mb-1">Dynamic Config</div>
+                <pre class="bg-black/30 p-3 rounded-lg text-[10px] font-mono overflow-x-auto border border-white/10">${configJson}</pre>
+            </div>
+        `;
+
+        modal.classList.remove('hidden');
+        setTimeout(() => modal.classList.add('show'), 10);
+    }
+
+    function closeBotDetailsModal(event) {
+        if (event && event.target !== event.currentTarget) return;
+        const modal = document.getElementById('bot-details-modal');
+        modal.classList.remove('show');
+        setTimeout(() => modal.classList.add('hidden'), 300);
     }
 
     async function stopBot(pair, event) {
@@ -1537,7 +1681,7 @@
                 <div class="flex justify-between items-start mb-2">
                     <div class="flex items-center gap-3">
                         <span class="font-bold text-sm ${colorClass} px-2 py-0.5 rounded bg-black/30 border border-white/5">${direction}</span>
-                        <span class="text-xs opacity-60 font-mono">${log.pair}</span>
+                        <span class="text-xs opacity-60 uppercase tracking-wider truncate">${log.pair}</span>
                     </div>
                     <span class="text-[10px] opacity-40">${dateStr}</span>
                 </div>
@@ -1862,11 +2006,12 @@
 
     async function cancelOpenOrders(targetPair = null) {
       const btn = !targetPair ? document.getElementById('btn-cancel-orders') : null;
-      const originalContent = btn ? btn.innerHTML : '';
-      if(btn) {
+      let originalContent = '';
+      if (btn) {
+          originalContent = btn.innerHTML;
           btn.innerHTML = `<i class="fas fa-circle-notch spin"></i>`;
-          setLoading(true);
       }
+      setLoading(true);
 
       const pair = targetPair || document.getElementById("pair").value;
       try {
@@ -1875,10 +2020,13 @@
         
         // Optimistic Update only if current pair
         if (!targetPair || targetPair === document.getElementById("pair").value) {
-            document.getElementById('status-open-orders').innerHTML = `
-            <div class="text-xs opacity-70 uppercase tracking-wide">Orders</div>
-            <div class="text-xl md:text-2xl font-bold opacity-50">-</div>
-            `;
+            const statusEl = document.getElementById('status-open-orders');
+            if (statusEl) {
+                statusEl.innerHTML = `
+                <div class="text-xs opacity-70 uppercase tracking-wide">Orders</div>
+                <div class="text-xl md:text-2xl font-bold opacity-50">-</div>
+                `;
+            }
             fetchStatus();
         }
         
@@ -1889,8 +2037,8 @@
         const errorMessage = err.response?.data?.detail || err.message;
         showToast(`Cancel orders failed: ${errorMessage}`, true);
       } finally {
+        setLoading(false);
         if(btn) {
-            setLoading(false);
             btn.innerHTML = originalContent;
         }
       }
@@ -1898,8 +2046,13 @@
 
     async function closePosition(targetPair = null) {
       const btn = !targetPair ? document.getElementById('btn-close-position') : null;
-      const originalContent = btn.innerHTML;
-      btn.innerHTML = `<i class="fas fa-circle-notch spin"></i>`;
+      let originalContent = '';
+
+      if (btn) {
+        originalContent = btn.innerHTML;
+        btn.innerHTML = `<i class="fas fa-circle-notch spin"></i>`;
+      }
+      
       setLoading(true);
 
       const pair = targetPair || document.getElementById("pair").value;
@@ -1909,10 +2062,13 @@
         
         // Optimistic Update only if current pair
         if (!targetPair || targetPair === document.getElementById("pair").value) {
-            document.getElementById('status-open-position').innerHTML = `
-            <div class="text-xs opacity-70 uppercase tracking-wide">Position</div>
-            <div class="text-xl md:text-2xl font-bold opacity-50">Closing...</div>
-            `;
+            const statusEl = document.getElementById('status-open-position');
+            if (statusEl) {
+                statusEl.innerHTML = `
+                <div class="text-xs opacity-70 uppercase tracking-wide">Position</div>
+                <div class="text-xl md:text-2xl font-bold opacity-50">Closing...</div>
+                `;
+            }
             fetchStatus();
         }
 
@@ -1929,8 +2085,8 @@
         const errorMessage = err.response?.data?.detail || err.message;
         showToast(`Close position failed: ${errorMessage}`, true);
       } finally {
+        setLoading(false);
         if(btn) {
-            setLoading(false);
             btn.innerHTML = originalContent;
         }
       }
@@ -2473,6 +2629,10 @@
                     aiFlipActive = data.aiflip;
                     updateAiFlipUI();
                 }
+                if (autoConfigActive !== data.auto_config) {
+                    autoConfigActive = data.auto_config;
+                    updateAutoConfigUI();
+                }
             }else {
                 // Reset defaults if bot is not running
                 if (aiFlipActive) {
@@ -2482,6 +2642,10 @@
                 if (counterTradeActive) {
                     counterTradeActive = false;
                     updateCounterTradeUI();
+                }
+                if (autoConfigActive) {
+                    autoConfigActive = false;
+                    updateAutoConfigUI();
                 }
             }
             
@@ -2550,13 +2714,14 @@
             take_profit: document.getElementById("tp_price").value ? parseFloat(document.getElementById("tp_price").value) : null,
             persona_set: currentPersona,
             counter_trade: counterTradeActive, // Send counter trade flag
-            aiflip: aiFlipActive // Send AI Flip flag
+            aiflip: aiFlipActive, // Send AI Flip flag
+            auto_config: autoConfigActive // Send Auto Config flag
           };
 
         try {
             const res = await axios.post(`${getApiBase()}/bot/configure`, payload);
             if (res.data.status === "started") {
-                showToast(`Auto Bot Started (${currentPersona}${counterTradeActive ? ', Counter' : ''}${aiFlipActive ? ', Flip' : ''})`);
+                showToast(`Auto Bot Started (${currentPersona}${counterTradeActive ? ', Counter' : ''}${aiFlipActive ? ', Flip' : ''}${autoConfigActive ? ', AiCfg' : ''})`);
                 isBotRunning = true;
             } else {
                 showToast("Auto Bot Stopped");
