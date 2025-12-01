@@ -455,11 +455,11 @@ select option {
                     </div>
 
                     <!-- Auto Config Switch -->
-                    <div class="flex flex-col items-center gap-1.5 cursor-pointer group p-1 rounded transition-colors" onclick="toggleAutoConfig()" title="Auto Config Mode">
+                    <div class="flex flex-col items-center gap-1.5 cursor-pointer group p-1 rounded transition-colors" onclick="toggleAutoConfig()" title="Dync Config Mode">
                         <div id="autoconfig-switch" class="w-9 h-5 rounded-full bg-white/10 relative transition-colors border border-white/10 hover:bg-white/5">
                             <div id="autoconfig-knob" class="absolute left-0.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white/40 transition-all shadow-sm"></div>
                         </div>
-                        <span class="text-[9px] uppercase font-bold opacity-40 transition-colors" id="autoconfig-label">Auto Config</span>
+                        <span class="text-[9px] uppercase font-bold opacity-40 transition-colors" id="autoconfig-label">Dyn Config</span>
                     </div>
 
                     <!-- Dynamic TP Switch -->
@@ -1435,7 +1435,7 @@ select option {
                     <span class="font-mono ${bot.aiflip ? 'text-blue-400' : ''}">${bot.aiflip}</span>
                 </div>
                 <div class="flex justify-between border-b border-white/5 pb-1">
-                    <span class="opacity-60">Auto Config</span>
+                    <span class="opacity-60">Dyn Config</span>
                     <span class="font-mono ${bot.auto_config ? 'text-purple-400' : ''}">${bot.auto_config}</span>
                 </div>
                 <div class="flex justify-between border-b border-white/5 pb-1">
@@ -2830,7 +2830,7 @@ select option {
         try {
             const res = await axios.post(`${getApiBase()}/bot/configure`, payload);
             if (res.data.status === "started") {
-                showToast(`Auto Bot Started (${currentPersona}${counterTradeActive ? ', Against AI' : ''}${aiFlipActive ? ', Support Reversal' : ''}${autoConfigActive ? ', Auto Config' : ''})`);
+                showToast(`Auto Bot Started (${currentPersona}${counterTradeActive ? ', Against AI' : ''}${aiFlipActive ? ', Support Reversal' : ''}${autoConfigActive ? ', Dync Config' : ''})`);
                 isBotRunning = true;
             } else {
                 showToast("Auto Bot Stopped");
