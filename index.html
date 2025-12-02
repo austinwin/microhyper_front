@@ -579,16 +579,19 @@ select option {
       <!-- Tabs Navigation -->
       <div class="flex items-center gap-6 mb-4 border-b border-white/10 overflow-x-auto">
         <button onclick="switchTab('ai-logs')" id="tab-btn-ai-logs" class="pb-2 border-b-2 border-violet-500 text-white font-bold flex items-center gap-2 transition-all whitespace-nowrap">
-            <i class="fas fa-brain text-violet-400"></i> AI
+            <i class="fas fa-brain text-violet-400"></i> Signal
+        </button>
+        <button onclick="switchTab('raw-logs')" id="tab-btn-raw-logs" class="pb-2 border-b-2 border-transparent text-white/50 hover:text-white font-bold flex items-center gap-2 transition-all whitespace-nowrap">
+            <i class="fas fa-terminal text-violet-400"></i> Log
         </button>
         <button onclick="switchTab('running-bots')" id="tab-btn-running-bots" class="pb-2 border-b-2 border-transparent text-white/50 hover:text-white font-bold flex items-center gap-2 transition-all whitespace-nowrap">
             <i class="fas fa-robot text-violet-400"></i> Bots
         </button>
         <button onclick="switchTab('positions')" id="tab-btn-positions" class="pb-2 border-b-2 border-transparent text-white/50 hover:text-white font-bold flex items-center gap-2 transition-all whitespace-nowrap">
-            <i class="fas fa-list-alt text-violet-400"></i> Positions
+            <i class="fas fa-list-alt text-violet-400"></i> Pos
         </button>
         <button onclick="switchTab('trades')" id="tab-btn-trades" class="pb-2 border-b-2 border-transparent text-white/50 hover:text-white font-bold flex items-center gap-2 transition-all whitespace-nowrap">
-            <i class="fas fa-history text-violet-400"></i> Trades
+            <i class="fas fa-history text-violet-400"></i> Trade
         </button>
       </div>
 
@@ -624,6 +627,35 @@ select option {
         </div>
         <div id="ai-logs-container" class="flex flex-col gap-3 max-h-[600px] overflow-y-auto pr-1">
             <div class="glass rounded-xl p-6 text-center opacity-50">Loading AI logs...</div>
+        </div>
+      </div>
+
+      <!-- Tab Content: Raw Logs -->
+      <div id="tab-content-raw-logs" class="hidden">
+        <div class="flex flex-wrap items-center gap-2 mb-4">
+            <div class="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-xl border border-white/10">
+                <i class="fas fa-clock text-xs opacity-50"></i>
+                <span class="text-[10px] uppercase font-bold opacity-60">Last:</span>
+                <input type="number" id="raw-logs-hours" min="1" max="720" value="24" 
+                       class="w-12 bg-transparent text-center font-mono font-bold text-sm focus:outline-none text-violet-300 border-b border-white/20"
+                       onchange="fetchRawAiLogs()">
+                <span class="text-[10px] font-bold opacity-60">Hours</span>
+            </div>
+            
+            <select id="raw-logs-pair" onchange="filterRawLogs()" class="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-violet-500 h-[38px]">
+                <option value="All">All Pairs</option>
+            </select>
+
+            <select id="raw-logs-type" onchange="filterRawLogs()" class="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-violet-500 h-[38px]">
+                <option value="All">All Types</option>
+            </select>
+
+            <button onclick="fetchRawAiLogs()" class="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 h-[38px]" title="Refresh">
+                <i class="fas fa-sync-alt text-xs"></i>
+            </button>
+        </div>
+        <div class="glass rounded-xl p-4 bg-black/40 border border-white/10 font-mono text-xs h-[600px] overflow-y-auto custom-scrollbar" id="raw-logs-terminal">
+            <div class="opacity-50 text-center mt-10">Waiting for logs...</div>
         </div>
       </div>
 
@@ -789,6 +821,7 @@ select option {
     let chartInterval = "3m"; // Default to 3m
     let lastFetchedTrades = [];
     let lastFetchedAiLogs = []; // New global
+    let lastFetchedRawLogs = []; // New global for raw logs
     let lastFetchedBots = []; // New global
     let lastFetchedPositions = []; // Store positions for sorting
     let currentAiLogFilter = 'All'; // Persist filter selection
@@ -1108,19 +1141,21 @@ select option {
         
         const btnTrades = document.getElementById('tab-btn-trades');
         const btnAi = document.getElementById('tab-btn-ai-logs');
+        const btnRaw = document.getElementById('tab-btn-raw-logs');
         const btnBots = document.getElementById('tab-btn-running-bots');
         const btnPos = document.getElementById('tab-btn-positions');
         
         const contentTrades = document.getElementById('tab-content-trades');
         const contentAi = document.getElementById('tab-content-ai-logs');
+        const contentRaw = document.getElementById('tab-content-raw-logs');
         const contentBots = document.getElementById('tab-content-running-bots');
         const contentPos = document.getElementById('tab-content-positions');
         
         // Reset all
-        [btnTrades, btnAi, btnBots, btnPos].forEach(btn => {
+        [btnTrades, btnAi, btnRaw, btnBots, btnPos].forEach(btn => {
              if(btn) btn.className = "pb-2 border-b-2 border-transparent text-white/50 hover:text-white font-bold flex items-center gap-2 transition-all whitespace-nowrap";
         });
-        [contentTrades, contentAi, contentBots, contentPos].forEach(c => {
+        [contentTrades, contentAi, contentRaw, contentBots, contentPos].forEach(c => {
              if(c) c.classList.add('hidden');
         });
 
@@ -1135,6 +1170,10 @@ select option {
             btnAi.className = "pb-2 border-b-2 border-violet-500 text-white font-bold flex items-center gap-2 transition-all whitespace-nowrap";
             contentAi.classList.remove('hidden');
             fetchPromise = fetchAiLogs();
+        } else if (tab === 'raw-logs') {
+            btnRaw.className = "pb-2 border-b-2 border-violet-500 text-white font-bold flex items-center gap-2 transition-all whitespace-nowrap";
+            contentRaw.classList.remove('hidden');
+            fetchPromise = fetchRawAiLogs();
         } else if (tab === 'running-bots') {
             btnBots.className = "pb-2 border-b-2 border-violet-500 text-white font-bold flex items-center gap-2 transition-all whitespace-nowrap";
             contentBots.classList.remove('hidden');
@@ -1158,6 +1197,129 @@ select option {
                 wrapper.style.minHeight = '0px';
             });
         }
+    }
+
+    async function fetchRawAiLogs() {
+        const container = document.getElementById('raw-logs-terminal');
+        const hours = document.getElementById('raw-logs-hours').value || 24;
+        
+        // Calculate start time
+        const now = new Date();
+        const startTime = new Date(now.getTime() - (hours * 60 * 60 * 1000)).toISOString();
+        
+        // Only show loading if container is effectively empty or showing the initial placeholder
+        if (!container.innerHTML.trim() || container.textContent.includes("Waiting for logs...")) {
+            container.innerHTML = '<div class="opacity-50 text-center mt-4">Fetching logs...</div>';
+        }
+
+        try {
+            const res = await axios.get(`${getApiBase()}/ai_logs/raw?start_time=${startTime}&limit=200`);
+            const newData = res.data;
+            
+            const isDifferent = !lastFetchedRawLogs || 
+                                newData.length !== lastFetchedRawLogs.length || 
+                                (newData.length > 0 && JSON.stringify(newData[0]) !== JSON.stringify(lastFetchedRawLogs[0]));
+
+            if (isDifferent) {
+                lastFetchedRawLogs = newData;
+                updateRawLogFilters(lastFetchedRawLogs);
+                filterRawLogs();
+            }
+        } catch (err) {
+            console.error("Failed to fetch raw logs:", err);
+            if (container.innerHTML.includes("Fetching logs")) {
+                container.innerHTML = '<div class="text-red-400 p-4 text-center">Failed to load raw logs.</div>';
+            }
+        }
+    }
+
+    function updateRawLogFilters(logs) {
+        const pairSelect = document.getElementById('raw-logs-pair');
+        const typeSelect = document.getElementById('raw-logs-type');
+        const currentPair = pairSelect.value;
+        const currentType = typeSelect.value;
+
+        const pairs = new Set(['All']);
+        const types = new Set(['All']);
+
+        logs.forEach(l => {
+            pairs.add(l.pair || 'GLOBAL');
+            if (l.config && l.config.prompt_type) types.add(l.config.prompt_type);
+        });
+
+        pairSelect.innerHTML = Array.from(pairs).sort().map(p => 
+            `<option value="${p}">${p === 'All' ? 'All Pairs' : p}</option>`
+        ).join('');
+        pairSelect.value = pairs.has(currentPair) ? currentPair : 'All';
+
+        typeSelect.innerHTML = Array.from(types).sort().map(t => 
+            `<option value="${t}">${t === 'All' ? 'All Types' : t.toUpperCase()}</option>`
+        ).join('');
+        typeSelect.value = types.has(currentType) ? currentType : 'All';
+    }
+
+    function filterRawLogs() {
+        const pairFilter = document.getElementById('raw-logs-pair').value;
+        const typeFilter = document.getElementById('raw-logs-type').value;
+        
+        if (!lastFetchedRawLogs) return;
+
+        const filtered = lastFetchedRawLogs.filter(log => {
+            const pair = log.pair || 'GLOBAL';
+            const type = log.config?.prompt_type || 'unknown';
+            
+            const matchPair = pairFilter === 'All' || pair === pairFilter;
+            const matchType = typeFilter === 'All' || type === typeFilter;
+            
+            return matchPair && matchType;
+        });
+        
+        renderRawAiLogs(filtered);
+    }
+
+    function renderRawAiLogs(logs) {
+        const container = document.getElementById('raw-logs-terminal');
+        
+        if (!logs || logs.length === 0) {
+            container.innerHTML = '<div class="opacity-50 text-center mt-4">No logs found in this period.</div>';
+            return;
+        }
+
+        const html = logs.map(log => {
+            const date = new Date(log.datetime);
+            const dateStr = date.toLocaleString();
+            const type = log.config.prompt_type;
+            const model = log.config.model;
+            const pair = log.pair || 'GLOBAL';
+            
+            let typeColor = 'text-white';
+            if (type === 'signal') typeColor = 'text-green-400';
+            if (type === 'config') typeColor = 'text-purple-400';
+            if (type === 'dynamic_tp') typeColor = 'text-cyan-400';
+            
+            // Format response JSON
+            let responseDisplay = '';
+            if (typeof log.response === 'object') {
+                responseDisplay = JSON.stringify(log.response, null, 2); // Pretty print
+            } else {
+                responseDisplay = log.response;
+            }
+
+            return `
+            <div class="mb-4 border-b border-white/5 pb-2 last:border-0">
+                <div class="flex flex-wrap gap-2 items-center mb-1 opacity-80">
+                    <span class="text-green-500 font-bold">➜</span>
+                    <span class="text-blue-300">[${dateStr}]</span>
+                    <span class="text-amber-400 font-bold">[${pair}]</span>
+                    <span class="${typeColor} font-bold uppercase">[${type}]</span>
+                    <span class="text-white/40 text-[10px]">(${model})</span>
+                </div>
+                <div class="pl-4 text-white/70 whitespace-pre-wrap break-words font-mono text-[11px]">${responseDisplay}</div>
+            </div>
+            `;
+        }).join('');
+
+        container.innerHTML = html;
     }
 
     async function fetchRunningBots() {
@@ -1363,7 +1525,7 @@ select option {
                         <div class="min-w-0">
                             <div class="font-bold text-base truncate">${bot.pair}</div>
                             <div class="flex items-center mt-0.5">
-                                <div class="text-[10px] opacity-60 uppercase tracking-wider truncate">${bot.persona_set.replace(/_/g, ' ')}</div>
+                                <div class="text-[10px] opacity-60 uppercase tracking-wider truncate max-w-[80px] md:max-w-[120px] transition-opacity">${bot.persona_set.replace(/_/g, ' ')}</div>
                                 ${counterBadge}
                                 ${aiFlipBadge}
                                 ${dynTpBadge}
@@ -1620,7 +1782,7 @@ select option {
                     </div>
 
                     <div class="flex gap-2 mt-3">
-                        <button onclick="event.stopPropagation(); closePosition('${pos.pair}')" class="flex-1 py-2 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-bold">
+                        <button onclick="event.stopPropagation(); closePosition('${pos.pair}')" class="flex-1 py-2 rounded bg-red-500/10 hover:bg-red-700/20 text-red-400 border border-red-500/20 text-xs font-bold">
                             Close
                         </button>
                         <button onclick="event.stopPropagation(); cancelOpenOrders('${pos.pair}')" class="flex-1 py-2 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 text-xs font-bold">
@@ -1678,7 +1840,7 @@ select option {
                             <td class="p-3 text-right font-mono font-bold ${pnlColor}">${pnl}</td>
                             <td class="p-3 text-center" onclick="event.stopPropagation()">
                                 <div class="flex items-center justify-center gap-2">
-                                    <button onclick="closePosition('${pos.pair}')" class="p-1.5 rounded bg-red-500/20 hover:bg-red-500/40 text-red-400 transition-colors" title="Close Position">
+                                    <button onclick="closePosition('${pos.pair}')" class="p-1.5 rounded bg-red-500/20 hover:bg-red-700/20 text-red-400 transition-colors" title="Close Position">
                                         <i class="fas fa-door-open"></i>
                                     </button>
                                     <button onclick="cancelOpenOrders('${pos.pair}')" class="p-1.5 rounded bg-amber-500/20 hover:bg-amber-500/40 text-amber-400 transition-colors" title="Cancel Orders">
@@ -1761,6 +1923,7 @@ select option {
             const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
             const signal = log.signal_output || {};
             let trade_id = log.trade_id || 'N/A';
+            const pair = log.pair || 'Unknown';
             
             const tradeIdColor = trade_id === 'Trade' ? 'text-green-400' : 'text-yellow-400';
 
@@ -1780,8 +1943,9 @@ select option {
             <div class="glass rounded-xl p-4 border ${bgClass} hover:bg-white/5 transition-colors">
                 <div class="flex justify-between items-start mb-2">
                     <div class="flex items-center gap-3">
-                        <span class="font-bold text-sm ${colorClass} px-2 py-0.5 rounded bg-black/30 border border-white/5">${direction}</span>
-                        <span class="text-xs opacity-60 uppercase tracking-wider truncate">${log.pair}</span>
+                        <span class="font-bold text-sm ${colorClass} px-2 py-0.5 rounded bg-black/30 border border-white/5">➜</span>
+                        <span class="text-amber-400 font-bold">[${pair}]</span>
+                        <span class="${colorClass} font-bold uppercase">[${direction}]</span>
                     </div>
                     <span class="text-[10px] opacity-40">${dateStr}</span>
                 </div>
@@ -2034,7 +2198,7 @@ select option {
             const colorClass = isLong ? 'text-green-400' : (direction === 'SHORT' ? 'text-red-400' : 'text-white');
             
             content.innerHTML = `
-                <div class="flex items-center justify-between border-b border-white/10 pb-4">
+                <div class="flex justify-between items-center border-b border-white/10 pb-4">
                     <div>
                         <div class="text-xs opacity-50 uppercase tracking-wide">Signal</div>
                         <div class="text-2xl font-bold ${colorClass}">${direction}</div>
@@ -2251,7 +2415,7 @@ select option {
       
       let pnlRange = 0;
       let feesRange = 0;
-      let openLongCount = 0;
+      let openLongsCount = 0;
       let openShortsCount = 0;
       
       recentTrades.forEach(t => {
@@ -2260,7 +2424,7 @@ select option {
         const side = (t.side || '').toLowerCase();
         
         if (side.includes('open')) {
-            if (side.includes('long') || side.includes('buy')) openLongCount++;
+            if (side.includes('long') || side.includes('buy')) openLongsCount++;
             if (side.includes('short') || side.includes('sell')) openShortsCount++;
         }
       });
@@ -2284,7 +2448,7 @@ select option {
             </div>
             <div class="px-2 py-1 rounded-lg bg-white/5 border border-white/10 flex items-center gap-2" title="Longs Opened (${rangeLabel})">
                 <span class="opacity-50 uppercase tracking-wider text-[10px]">Longs</span>
-                <span class="font-mono font-bold text-green-400">${openLongCount}</span>
+                <span class="font-mono font-bold text-green-400">${openLongsCount}</span>
             </div>
             <div class="px-2 py-1 rounded-lg bg-white/5 border border-white/10 flex items-center gap-2" title="Shorts Opened (${rangeLabel})">
                 <span class="opacity-50 uppercase tracking-wider text-[10px]">Shorts</span>
@@ -2570,7 +2734,7 @@ select option {
 
         // Label
         const date = new Date(d.time);
-        const tStr = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        const tStr = date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
         ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
         ctx.textAlign = "center";
         ctx.fillText(tStr, x, h - 5);
@@ -2651,6 +2815,8 @@ select option {
             promises.push(fetchHistory());
         } else if (currentTab === 'ai-logs') {
             promises.push(fetchAiLogs());
+        } else if (currentTab === 'raw-logs') {
+            promises.push(fetchRawAiLogs());
         } else if (currentTab === 'running-bots') {
             promises.push(fetchRunningBots());
         } else if (currentTab === 'positions') {
