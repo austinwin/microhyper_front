@@ -3461,7 +3461,12 @@ async function openBattleManager() {
         // Auto-select first session if none selected
         let shouldRefreshChart = false;
         if (!currentBattleSession) {
-            currentBattleSession = sessions[0].name;
+            const activeSession = sessions.find(s => s.status === 'active');
+            if (activeSession) {
+                currentBattleSession = activeSession.name;
+            } else {
+                currentBattleSession = sessions[0].name;
+            }
             document.getElementById('battle-selected-session-label').textContent = currentBattleSession;
             document.getElementById('battle-manage-area').classList.remove('hidden');
             shouldRefreshChart = true;
