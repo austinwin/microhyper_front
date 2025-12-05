@@ -508,9 +508,6 @@ select option {
                             <span class="text-[9px] uppercase font-bold opacity-40 transition-colors" id="hardstoploss-label">Hard SL</span>
                         </div>
                     </div>
-                    <button onclick="openSwitchesInfo()" class="absolute -bottom-2 -right-2 w-5 h-5 rounded-full bg-gray-800 hover:bg-gray-700 border border-white/20 flex items-center justify-center shadow-lg z-10">
-                        <i class="fas fa-info text-[10px] text-white/70"></i>
-                    </button>
                 </div>
              </div>
 
@@ -528,10 +525,10 @@ select option {
                     <span class="text-xs font-bold opacity-90">Ask AI</span>
                  </button>
 
-                 <!-- Trade AI (Single) -->
-                 <button id="btn-ai" onclick="executeAITrade()" class="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all group shadow-sm">
-                    <i class="fas fa-robot text-blue-300 text-sm group-hover:scale-110 transition-transform"></i>
-                    <span class="text-xs font-bold opacity-90">1 Trade</span>
+                 <!-- Information Button -->
+                 <button onclick="openSwitchesInfo()" class="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all group shadow-sm">
+                    <i class="fas fa-info-circle text-gray-300 text-sm group-hover:scale-110 transition-transform"></i>
+                    <span class="text-xs font-bold opacity-90">Info</span>
                  </button>
              </div>
           </div>
@@ -610,6 +607,11 @@ select option {
               <i class="fas fa-arrow-down"></i><span>Short</span>
             </button>
             
+            <!-- Trade AI (Single) -->
+            <button id="btn-ai" onclick="executeAITrade()" disabled class="flex-1 py-3 btn-primary rounded-xl font-semibold text-base bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 flex items-center justify-center gap-2 disabled:opacity-25 disabled:cursor-not-allowed disabled:grayscale">
+                <i class="fas fa-robot"></i><span>AI Trade</span>
+            </button>
+
             <button id="btn-manual-toggle" onclick="toggleManualTradeButtons()" class="w-12 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 flex flex-col items-center justify-center transition-colors group">
                 <i id="manual-lock-icon" class="fas fa-lock text-white/30 mb-1 group-hover:text-white/60 transition-colors"></i>
                 <span id="manual-lock-text" class="text-[8px] uppercase font-bold opacity-30">Lock</span>
@@ -1161,7 +1163,7 @@ select option {
             knob.classList.add('bg-cyan-400');
             
             label.classList.remove('opacity-40');
-            label.classList.add('text-cyan-400', 'opacity-100');
+            label.classlist.add('text-cyan-400', 'opacity-100');
         } else {
             switchEl.classList.add('bg-white/10', 'border-white/10');
             switchEl.classList.remove('bg-cyan-500/20', 'border-cyan-500/50');
@@ -3201,6 +3203,7 @@ select option {
         manualTradeEnabled = !manualTradeEnabled;
         const btnLong = document.getElementById('btn-long');
         const btnShort = document.getElementById('btn-short');
+        const btnAi = document.getElementById('btn-ai');
         const toggleBtn = document.getElementById('btn-manual-toggle');
         const icon = document.getElementById('manual-lock-icon');
         const text = document.getElementById('manual-lock-text');
@@ -3208,6 +3211,7 @@ select option {
         if (manualTradeEnabled) {
             btnLong.disabled = false;
             btnShort.disabled = false;
+            if (btnAi) btnAi.disabled = false;
             
             toggleBtn.classList.add('bg-red-500/10', 'border-red-500/30');
             toggleBtn.classList.remove('bg-white/5', 'border-white/10');
@@ -3218,6 +3222,7 @@ select option {
         } else {
             btnLong.disabled = true;
             btnShort.disabled = true;
+            if (btnAi) btnAi.disabled = true;
             
             toggleBtn.classList.remove('bg-red-500/10', 'border-red-500/30');
             toggleBtn.classList.add('bg-white/5', 'border-white/10');
