@@ -909,6 +909,13 @@ select option {
              <div class="flex flex-col gap-3 mb-4">
                 <!-- Market Stats Row -->
                 <div id="market-changes" class="flex justify-between items-center gap-2 text-xs font-mono opacity-80 bg-black/20 p-2 rounded-lg border border-white/5 min-h-[32px]"></div>
+                                <!-- Market Sentiment Row -->
+                <div id="market-sentiment" class="grid grid-cols-4 gap-1 text-[10px] font-mono opacity-80 bg-black/20 p-2 rounded-lg border border-white/5 min-h-[32px]">
+                    <div id="fgi-15m" class="text-center flex flex-col items-center justify-center"><span class="opacity-50">15m</span><span>--</span></div>
+                    <div id="fgi-1h" class="text-center flex flex-col items-center justify-center"><span class="opacity-50">1h</span><span>--</span></div>
+                    <div id="fgi-4h" class="text-center flex flex-col items-center justify-center"><span class="opacity-50">4h</span><span>--</span></div>
+                    <div id="fgi-1d" class="text-center flex flex-col items-center justify-center"><span class="opacity-50">1d</span><span>--</span></div>
+                </div>
              </div>
 
              <!-- AI Actions Grid -->
@@ -3448,7 +3455,31 @@ select option {
     // Live clock & status refresh
     // Use recursive setTimeout instead of setInterval to prevent queue buildup
     let pollingTimer = null;
-    
+    async function fetchMarketSentiment() {
+        const intervals = ['15m', '1h', '4h', '1d'];
+        
+        for (const interval of intervals) {
+            try {
+                const res = await axios.get(`${getApiBase()}/fgi?interval=${interval}`);
+                const data = res.data;
+                
+                const el = document.getElementById(`fgi-${interval}`);
+                if (el) {
+                    let colorClass = 'text-white';
+                    if (data.fgi_sentiment.includes('FEAR')) colorClass = 'text-red-400';
+                    else if (data.fgi_sentiment.includes('GREED')) colorClass = 'text-green-400';
+                    
+                    let sentimentText = data.fgi_sentiment;
+                    if (sentimentText === 'EXTREME FEAR') sentimentText = 'EX.FEAR';
+                    if (sentimentText === 'EXTREME GREED') sentimentText = 'EX.GREED';
+
+                    el.innerHTML = `<span class="opacity-50 mb-0.5">${interval}</span><span class="${colorClass} font-bold">${sentimentText}(${data.fgi_value})</span>`;
+                }
+            } catch (e) {
+                console.error(`Error fetching FGI for ${interval}:`, e);
+            }
+        }
+    }
     async function startPolling() {
         if (pollingTimer) clearTimeout(pollingTimer);
         
@@ -3462,6 +3493,7 @@ select option {
         
         poll();
     }
+    
     
     // --- Bot Logic ---
     let isBotRunning = false;
@@ -4325,6 +4357,8 @@ async function openBattleManager() {
       fetchSettings();
       fetchBattles();
       startBattlePolling();
+      fetchMarketSentiment();
+      setInterval(fetchMarketSentiment, 15 * 60 * 1000);
       switchTab('running-bots'); // Show AI tab content on first load
     }
   </script>
